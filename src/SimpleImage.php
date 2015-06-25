@@ -14,6 +14,13 @@ namespace Hiperbola\SimpleImage;
 class SimpleImage {
 
   /**
+   * Image map class to act as a cache.
+   *
+   * @var ImageMap
+   */
+  private $imageMap = null;
+
+  /**
    * Absolute path to image that is to be displayed
    *
    * @var string
@@ -42,11 +49,14 @@ class SimpleImage {
   private $extension;
 
   /**
-   * Various options for image
+   * Default options for image processing
    *
    * @var array
    */
-  private $options;
+  private $options = [
+      'height' => 0,
+      'width'  => 0
+  ];
 
   /**
    * Image stored in memory
@@ -55,42 +65,103 @@ class SimpleImage {
    */
   private $image;
 
-  private $newImage;
-
   /**
    * Create new simple image instance with options, execution in constructor.
    *
    * @param string $basedir
    * @param string $fileName
-   * @param array  $options
+   * @param        $optionString
+   * @internal param string $options
    */
-  function __construct($basedir, $fileName, $options = []) {
+  public function __construct($basedir, $fileName, $optionString) {
+    $this->imageMap = new ImageMap();
     $this->basedir = $basedir;
     $this->fileName = $fileName;
     $this->fullPath = $this->basedir . '/' . $this->fileName;
     $this->extension = strtolower(substr($fileName, strpos($fileName, '.') + 1));
-    $this->options = $options;
 
-    $this->process();
+    $this->options = array_merge($this->options, $this->parseOptions($optionString));
+    $this->processRequest();
   }
 
   /**
-   * Clean up any images still in memory to avoid any short term memory leaks
+   * Clean up any images still in memory to avoid any short term memory leaks.
    */
   public function __destruct() {
-    imagedestroy($this->image);
-    imagedestroy($this->newImage);
+    @imagedestroy($this->image);
   }
 
   /**
    * Display image in correct format.
    */
-  private function process() {
-    echo '<pre>';
-    $fileName = $this->fullPath;
-    $this->image = $this->openImage($fileName);
-    $this->resizeImage($this->image);
+  private function processRequest() {
+    $imageData = $this->findImageData();
+
+    // miss in cache
+    if (empty($imageData)) {
+      $this->storeImage($this->options);
+    }
+
+    $imageData = $this->findImageData();
+    if (empty($imageData)) {
+      throw new \RuntimeException('Was not able to store cache entry for image.');
+    }
+
+    $this->image = $this->openImage($imageData['fileName']);
     $this->dumpImage($this->image);
+  }
+
+  /**
+   * Get image data from image map
+   *
+   * @return array
+   */
+  private function findImageData() {
+    return $this->imageMap->get($this->fullPath, $this->options['width'], $this->options['height']);
+  }
+
+  /**
+   * Store image into cache, create resized image if necessary.
+   *
+   * @param array $options
+   */
+  private function storeImage(array $options) {
+    // if both axles set to 0 we store default image
+    if ($options['width'] === 0 && $options['height'] === 0) {
+      $this->imageMap->insert($this->fullPath, $this->fullPath, 0, 0);
+    }
+    // we generate new resized image and store that to cache
+    else {
+      $resizer = new Resizer();
+      $resizer->resizeImage($this->image, $this->options);
+      $filePath = $resizer->getImagePath();
+      list($width, $height) = Resizer::getDimensions($filePath);
+      $this->imageMap->insert($filePath, $filePath, $width, $height);
+    }
+  }
+
+  /**
+   * Extract options from uri string parameters
+   *
+   * @param $optionString
+   * @return array
+   */
+  private function parseOptions($optionString) {
+    $options = [];
+    $optionValues = explode('/', $optionString);
+    foreach ($optionValues as $value) {
+      $temp = explode(':', $value);
+      switch ($temp[0]) {
+        case 'w':
+        case 'width':
+          $options['width'] = $temp[1];
+          break;
+        case 'h':
+        case 'height':
+          $options['height'] = $temp[1];
+      }
+    }
+    return $options;
   }
 
   /**
@@ -113,60 +184,6 @@ class SimpleImage {
         break;
     }
     return $img;
-  }
-
-  private function resizeImage($image) {
-    list($width, $height) = $this->getDimensions($image);
-    list($newWidth, $newHeight) = $this->getSizeByFixedWidth($width, $height, 800);
-
-    $this->newImage = imagecreatetruecolor($newWidth, $newHeight);
-    imagecopyresampled($this->newImage, $this->image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-    $this->image = $this->newImage;
-    $this->newImage = null;
-
-    imagejpeg($this->image, "huehue.jpg");
-  }
-
-  /**
-   * Get size of new image if height is to remain the same and aspect ratio is to be kept.
-   *
-   * @param $width
-   * @param $height
-   * @param $newHeight
-   * @return array
-   */
-  private function getSizeByFixedHeight($width, $height, $newHeight) {
-    $ratio = $width / $height;
-    $newWidth = $newHeight * $ratio;
-    return [$newWidth, $newHeight];
-  }
-
-  /**
-   * Get size of new image if width is to remain the same and aspect ratio is to be kept.
-   *
-   * @param $width
-   * @param $height
-   * @param $newWidth
-   * @return array
-   */
-  private function getSizeByFixedWidth($width, $height, $newWidth) {
-    $ratio = $height / $width;
-    $newHeight = $newWidth * $ratio;
-    return [$newWidth, $newHeight];
-  }
-
-  /**
-   * Get image dimensions
-   *
-   * @return array
-   */
-  private function getDimensions() {
-    $info = getimagesize($this->fullPath);
-    return [
-      $info[0],
-      $info[1]
-    ];
   }
 
   /**

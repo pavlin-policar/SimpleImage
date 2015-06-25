@@ -2,3 +2,4 @@
 /vendor/
 /img/
 index.php
+.sqlite3
