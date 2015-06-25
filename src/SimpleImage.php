@@ -55,6 +55,8 @@ class SimpleImage {
    */
   private $image;
 
+  private $newImage;
+
   /**
    * Create new simple image instance with options, execution in constructor.
    *
@@ -73,11 +75,21 @@ class SimpleImage {
   }
 
   /**
+   * Clean up any images still in memory to avoid any short term memory leaks
+   */
+  public function __destruct() {
+    imagedestroy($this->image);
+    imagedestroy($this->newImage);
+  }
+
+  /**
    * Display image in correct format.
    */
   private function process() {
+    echo '<pre>';
     $fileName = $this->fullPath;
     $this->image = $this->openImage($fileName);
+    $this->resizeImage($this->image);
     $this->dumpImage($this->image);
   }
 
@@ -101,6 +113,60 @@ class SimpleImage {
         break;
     }
     return $img;
+  }
+
+  private function resizeImage($image) {
+    list($width, $height) = $this->getDimensions($image);
+    list($newWidth, $newHeight) = $this->getSizeByFixedWidth($width, $height, 800);
+
+    $this->newImage = imagecreatetruecolor($newWidth, $newHeight);
+    imagecopyresampled($this->newImage, $this->image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+    $this->image = $this->newImage;
+    $this->newImage = null;
+
+    imagejpeg($this->image, "huehue.jpg");
+  }
+
+  /**
+   * Get size of new image if height is to remain the same and aspect ratio is to be kept.
+   *
+   * @param $width
+   * @param $height
+   * @param $newHeight
+   * @return array
+   */
+  private function getSizeByFixedHeight($width, $height, $newHeight) {
+    $ratio = $width / $height;
+    $newWidth = $newHeight * $ratio;
+    return [$newWidth, $newHeight];
+  }
+
+  /**
+   * Get size of new image if width is to remain the same and aspect ratio is to be kept.
+   *
+   * @param $width
+   * @param $height
+   * @param $newWidth
+   * @return array
+   */
+  private function getSizeByFixedWidth($width, $height, $newWidth) {
+    $ratio = $height / $width;
+    $newHeight = $newWidth * $ratio;
+    return [$newWidth, $newHeight];
+  }
+
+  /**
+   * Get image dimensions
+   *
+   * @return array
+   */
+  private function getDimensions() {
+    $info = getimagesize($this->fullPath);
+    return [
+      $info[0],
+      $info[1]
+    ];
   }
 
   /**
