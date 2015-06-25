@@ -1,0 +1,15 @@
+{
+  "name": "hiperbola/simple-image",
+  "authors": [
+    {
+      "name": "Pavlin",
+      "email": "pavlin.g.p@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Hiperbola\\SimpleImage\\": "src/"
+    }
+  },
+  "require": {}
+}
