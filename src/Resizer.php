@@ -9,6 +9,8 @@ class Resizer {
 
   protected $newImage = null;
 
+  protected $keepAspectRatio = 1;
+
   /**
    * Generated image path.
    *
@@ -45,6 +47,15 @@ class Resizer {
   }
 
   /**
+   * Return 1 if aspect ratio is preserved, 0 if it is not.
+   *
+   * @return int
+   */
+  public function keepAspectRatio() {
+    return $this->keepAspectRatio;
+  }
+
+  /**
    * Get calculated sizes of new resized image.
    *
    * @param array   $options
@@ -58,6 +69,7 @@ class Resizer {
     } else if ($options['width'] !== 0 && $options['height'] === 0) {
       return $this->getSizeByFixedWidth($currentWidth, $currentHeight, $options['width']);
     } else {
+      $this->keepAspectRatio = 0;
       return [$options['width'], $options['height']];
     }
   }

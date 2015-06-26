@@ -25,30 +25,34 @@ class ImageMap {
   }
 
   /**
-   * @param $imageName
-   * @param $fileName
-   * @param $width
-   * @param $height
+   * @param string  $imageName
+   * @param string  $fileName
+   * @param integer $width
+   * @param integer $height
+   * @param integer $keepAspectRatio
    */
-  public function insert($imageName, $fileName, $width, $height) {
+  public function insert($imageName, $fileName, $width, $height, $keepAspectRatio) {
     $sth = $this->map->prepare(
-        'INSERT INTO image_map (imageName, fileName, width, height) VALUES (:imageName, :fileName, :width, :height)'
+        'INSERT INTO image_map (imageName, fileName, width, height, keepAspectRatio)
+          VALUES (:imageName, :fileName, :width, :height, :aspectRatio)'
     );
     $sth->bindParam(':imageName', $imageName);
     $sth->bindParam(':fileName', $fileName);
-    $sth->bindParam(':width', $width);
-    $sth->bindParam(':height', $height);
+    $sth->bindParam(':width', $width, PDO::PARAM_INT);
+    $sth->bindParam(':height', $height, PDO::PARAM_INT);
+    $sth->bindParam(':aspectRatio', $keepAspectRatio, PDO::PARAM_INT);
     $sth->execute();
   }
 
   /**
-   * @param string  $imageName Image name to be stored, recommended use absolute path.
-   * @param integer $width     Default to 0, 0 being the default image without any resizing.
-   * @param integer $height    Default to 0, 0 being the default image without any resizing.
+   * @param string  $imageName       Image name to be stored, recommended use absolute path.
+   * @param integer $width           Default to 0, 0 being the default image without any resizing.
+   * @param integer $height          Default to 0, 0 being the default image without any resizing.
+   * @param integer $keepAspectRatio Is aspect ratio of image preserved.
    * @return mixed
    */
-  public function get($imageName, $width = 0, $height = 0) {
-    $query = 'SELECT * FROM image_map WHERE imageName = :imageName';
+  public function get($imageName, $width = 0, $height = 0, $keepAspectRatio = 1) {
+    $query = 'SELECT * FROM image_map WHERE imageName = :imageName AND keepAspectRatio = :keepAspectRatio';
     if ($width !== 0) {
       $query .= ' AND width = :width';
     }
@@ -64,6 +68,8 @@ class ImageMap {
     if ($height !== 0) {
       $sth->bindParam(':height', $height, PDO::PARAM_INT);
     }
+    $sth->bindParam(':keepAspectRatio', $keepAspectRatio, PDO::PARAM_INT);
+
     $sth->execute();
     return $sth->fetch(PDO::FETCH_ASSOC);
   }
@@ -76,7 +82,13 @@ class ImageMap {
       $this->map = new PDO('sqlite:image_map.sqlite3');
       $this->map->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $this->map->exec(
-          "CREATE TABLE IF NOT EXISTS image_map (id INTEGER PRIMARY KEY, imageName TEXT, fileName TEXT, width INTEGER, height INTEGER)"
+          "CREATE TABLE IF NOT EXISTS image_map (
+              id INTEGER PRIMARY KEY,
+              imageName TEXT,
+              fileName TEXT,
+              width INTEGER,
+              height INTEGER,
+              keepAspectRatio INTEGER)"
       );
     }
   }

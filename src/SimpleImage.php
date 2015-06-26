@@ -104,6 +104,7 @@ class SimpleImage {
   private function processRequest() {
     $imageData = $this->findImageData($this->fullPath, $this->options);
 
+
     if (!$imageData) {
       $this->generateAndStoreImage($this->fullPath, $this->options);
     }
@@ -126,7 +127,8 @@ class SimpleImage {
    * @return array|bool
    */
   private function findImageData($imageName, array $options) {
-    $data = $this->imageMap->get($imageName, $options['width'], $options['height']);
+    $aspectRatio = $options['width'] !== 0 && $options['height'] !== 0 ? 0 : 1;
+    $data = $this->imageMap->get($imageName, $options['width'], $options['height'], $aspectRatio);
     return empty($data) ? false : $data;
   }
 
@@ -139,7 +141,7 @@ class SimpleImage {
   private function generateAndStoreImage($imageName, array $options) {
     // if both axles set to 0 we simply store default image
     if ($options['width'] === 0 && $options['height'] === 0) {
-      $this->imageMap->insert($imageName, $imageName, 0, 0);
+      $this->imageMap->insert($imageName, $imageName, 0, 0, 1);
     } // we generate new resized image and store that to cache
     else {
       $resizer = new Resizer();
@@ -156,7 +158,7 @@ class SimpleImage {
       $this->storeImage($this->image, $fileName);
 
       // insert entry into cache
-      $this->imageMap->insert($imageName, $fileName, $width, $height);
+      $this->imageMap->insert($imageName, $fileName, $width, $height, $resizer->keepAspectRatio());
     }
   }
 
@@ -185,6 +187,9 @@ class SimpleImage {
    * @param string   $fileName
    */
   private function storeImage($image, $fileName) {
+    if (!file_exists($this->cacheDirectory)) {
+      mkdir($this->cacheDirectory);
+    }
     switch ($this->extension) {
       case 'jpg':
       case 'jpeg':
@@ -241,6 +246,8 @@ class SimpleImage {
       case 'gif':
         $img = @imagecreatefromgif($filename);
         break;
+      default:
+        throw new \RuntimeException('Image type not supported.');
     }
     return $img;
   }
