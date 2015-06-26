@@ -3,4 +3,4 @@
 /img/
 /cache/
 index.php
-.sqlite3
+*.sqlite3

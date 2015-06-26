@@ -197,9 +197,6 @@ class SimpleImage {
       case 'png':
         imagepng($image, $fileName);
         break;
-      case 'gif':
-        imagegif($image, $fileName);
-        break;
     }
   }
 
@@ -242,9 +239,6 @@ class SimpleImage {
       case 'png':
         $img = @imagecreatefrompng($filename);
         break;
-      case 'gif':
-        $img = @imagecreatefromgif($filename);
-        break;
       default:
         throw new \RuntimeException('Image type not supported.');
     }
@@ -264,10 +258,6 @@ class SimpleImage {
       case 'png':
         header('Content-Type: image/png');
         imagepng($this->image);
-        break;
-      case 'gif':
-        header('Content-Type: image/gif');
-        imagegif($this->image);
         break;
     }
   }

@@ -1,5 +1,5 @@
 <IfModule mod_rewrite.c>
     RewriteEngine on
 
-    RewriteRule ^(.*)\.(jpg|png|gif) bootstrap.php/$1 [L]
+    RewriteRule ^(.*)\.(jpg|png) bootstrap.php/$1 [L]
 </IfModule>

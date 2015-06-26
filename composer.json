@@ -12,8 +12,8 @@
     }
   },
   "repositories": {
-    "type": "vsc",
-    "url": "git@github.com/pavlin-policar/SimpleImage.git"
+    "type": "vcs",
+    "url": "https://github.com/pavlin-policar/SimpleImage"
   },
   "minimum-stability": "dev",
   "require": {
