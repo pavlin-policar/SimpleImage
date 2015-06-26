@@ -1,5 +1,6 @@
 .idea/
 /vendor/
 /img/
+/cache/
 index.php
 .sqlite3

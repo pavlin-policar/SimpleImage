@@ -104,7 +104,6 @@ class SimpleImage {
   private function processRequest() {
     $imageData = $this->findImageData($this->fullPath, $this->options);
 
-
     if (!$imageData) {
       $this->generateAndStoreImage($this->fullPath, $this->options);
     }

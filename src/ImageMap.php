@@ -7,6 +7,8 @@ use PDO;
 /**
  * Class ImageMap
  *
+ * Handle image map logic. Implemented with a sqlite3 database
+ *
  * @package Hiperbola\SimpleImage
  */
 class ImageMap {

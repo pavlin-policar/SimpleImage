@@ -2,13 +2,34 @@
 
 namespace Hiperbola\SimpleImage;
 
-
+/**
+ * Class Resizer
+ *
+ * Handles actual resizing of images.
+ *
+ * @package Hiperbola\SimpleImage
+ */
 class Resizer {
 
+  /**
+   * Original image.
+   *
+   * @var resource
+   */
   protected $image = null;
 
+  /**
+   * Working copy of image.
+   *
+   * @var resource
+   */
   protected $newImage = null;
 
+  /**
+   * Indicator of whether or not to keep aspect ratio (0 - false | 1 true).
+   *
+   * @var int
+   */
   protected $keepAspectRatio = 1;
 
   /**
