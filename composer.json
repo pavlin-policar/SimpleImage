@@ -1,5 +1,6 @@
 {
   "name": "hiperbola/simple-image",
+  "description": "A simple image resizing plugin that handles all image resizing server side.",
   "authors": [
     {
       "name": "Pavlin",
@@ -11,5 +12,8 @@
       "Hiperbola\\SimpleImage\\": "src/"
     }
   },
-  "require": {}
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=5.3.0"
+  }
 }
