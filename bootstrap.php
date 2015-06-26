@@ -10,3 +10,4 @@ preg_match('/(.*)\/(\w+)\.(jpg|png|gif)(.*)/', $uri, $image);
 $filePath = $_SERVER["DOCUMENT_ROOT"] . $image[1];
 
 $simple = new \Hiperbola\SimpleImage\SimpleImage($filePath, $image[2] . '.' . $image[3], trim($image[4], '/'));
+$simple->dumpImage();

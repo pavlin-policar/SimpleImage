@@ -59,6 +59,13 @@ class SimpleImage {
   ];
 
   /**
+   * Default directory of cached images.
+   *
+   * @var string
+   */
+  private $cacheDirectory = 'cache/';
+
+  /**
    * Image stored in memory
    *
    * @var resource
@@ -70,10 +77,10 @@ class SimpleImage {
    *
    * @param string $basedir
    * @param string $fileName
-   * @param        $optionString
+   * @param string $optionString
    * @internal param string $options
    */
-  public function __construct($basedir, $fileName, $optionString) {
+  public function __construct($basedir, $fileName, $optionString = '') {
     $this->imageMap = new ImageMap();
     $this->basedir = $basedir;
     $this->fileName = $fileName;
@@ -95,55 +102,107 @@ class SimpleImage {
    * Display image in correct format.
    */
   private function processRequest() {
-    $imageData = $this->findImageData();
+    $imageData = $this->findImageData($this->fullPath, $this->options);
 
-    // miss in cache
-    if (empty($imageData)) {
-      $this->storeImage($this->options);
+    if (!$imageData) {
+      $this->generateAndStoreImage($this->fullPath, $this->options);
     }
 
-    $imageData = $this->findImageData();
-    if (empty($imageData)) {
+    $imageData = $this->findImageData($this->fullPath, $this->options);
+    if (!$imageData) {
       throw new \RuntimeException('Was not able to store cache entry for image.');
     }
 
-    $this->image = $this->openImage($imageData['fileName']);
-    $this->dumpImage($this->image);
+    $this->fullPath = $imageData['fileName'];
+
+    $this->image = $this->openImage($this->fullPath);
   }
 
   /**
-   * Get image data from image map
+   * Get image data from image map, return false if miss
    *
-   * @return array
+   * @param string $imageName
+   * @param array  $options
+   * @return array|bool
    */
-  private function findImageData() {
-    return $this->imageMap->get($this->fullPath, $this->options['width'], $this->options['height']);
+  private function findImageData($imageName, array $options) {
+    $data = $this->imageMap->get($imageName, $options['width'], $options['height']);
+    return empty($data) ? false : $data;
   }
 
   /**
    * Store image into cache, create resized image if necessary.
    *
-   * @param array $options
+   * @param string $imageName
+   * @param array  $options
    */
-  private function storeImage(array $options) {
-    // if both axles set to 0 we store default image
+  private function generateAndStoreImage($imageName, array $options) {
+    // if both axles set to 0 we simply store default image
     if ($options['width'] === 0 && $options['height'] === 0) {
-      $this->imageMap->insert($this->fullPath, $this->fullPath, 0, 0);
-    }
-    // we generate new resized image and store that to cache
+      $this->imageMap->insert($imageName, $imageName, 0, 0);
+    } // we generate new resized image and store that to cache
     else {
       $resizer = new Resizer();
-      $resizer->resizeImage($this->image, $this->options);
-      $filePath = $resizer->getImagePath();
-      list($width, $height) = Resizer::getDimensions($filePath);
-      $this->imageMap->insert($filePath, $filePath, $width, $height);
+      // first we need the default image to be loaded
+      $default = new SimpleImage($this->basedir, $this->fileName);
+
+      // resize image with given options and store it onto disk
+      $this->image = $resizer->resizeImage($default->image, $options);
+
+      // generate cached image file name
+      list($width, $height) = Resizer::getDimensions($this->image);
+      $fileName = $this->generateFileName($this->fullPath, $width, $height);
+
+      $this->storeImage($this->image, $fileName);
+
+      // insert entry into cache
+      $this->imageMap->insert($imageName, $fileName, $width, $height);
+    }
+  }
+
+  /**
+   * Generate cached image file path.
+   *
+   * @param string  $imageName
+   * @param integer $width
+   * @param integer $height
+   * @return mixed|string
+   */
+  private function generateFileName($imageName, $width, $height) {
+    $imageName = preg_replace('/\//', '_', $imageName);
+    $imageName = preg_replace('/:/', '', $imageName);
+    $extension = substr($imageName, strpos($imageName, '.') + 1);
+    $imageName = substr($imageName, 0, strpos($imageName, '.'));
+    $imageName = $imageName . '_' . $width . '_' . $height . '.' . $extension;
+    $imageName = $this->cacheDirectory . $imageName;
+    return $imageName;
+  }
+
+  /**
+   * Store image to disk.
+   *
+   * @param resource $image
+   * @param string   $fileName
+   */
+  private function storeImage($image, $fileName) {
+    switch ($this->extension) {
+      case 'jpg':
+      case 'jpeg':
+        imagejpeg($image, $fileName);
+        break;
+      case 'png':
+        imagepng($image, $fileName);
+        break;
+      case 'gif':
+        imagegif($image, $fileName);
+        break;
     }
   }
 
   /**
    * Extract options from uri string parameters
    *
-   * @param $optionString
+   * @param string $optionString
    * @return array
    */
   private function parseOptions($optionString) {
@@ -167,7 +226,7 @@ class SimpleImage {
   /**
    * Open existing image from disk.
    *
-   * @param $filename
+   * @param string $filename
    * @return resource
    */
   private function openImage($filename) {
@@ -188,23 +247,21 @@ class SimpleImage {
 
   /**
    * Return image to browser to display.
-   *
-   * @param resource $img
    */
-  private function dumpImage($img) {
+  public function dumpImage() {
     switch ($this->extension) {
       case 'jpg':
       case 'jpeg':
         header('Content-Type: image/jpeg');
-        imagejpeg($img);
+        imagejpeg($this->image);
         break;
       case 'png':
         header('Content-Type: image/png');
-        imagepng($img);
+        imagepng($this->image);
         break;
       case 'gif':
         header('Content-Type: image/gif');
-        imagegif($img);
+        imagegif($this->image);
         break;
     }
   }
