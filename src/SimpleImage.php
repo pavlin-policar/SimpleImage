@@ -213,7 +213,7 @@ class SimpleImage {
       switch ($temp[0]) {
         case 'w':
         case 'width':
-          $options['width'] = $temp[1];
+        $options['width'] = $temp[1];
           break;
         case 'h':
         case 'height':
